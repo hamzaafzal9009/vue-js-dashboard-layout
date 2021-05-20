@@ -69,6 +69,19 @@ export default {
           targetPage: "/dashboard",
           icon: "fal fa-th-large",
         },
+        {
+          name: "Vehicle Information",
+          displayName: "Vehicle",
+          targetPage: "/vehicle",
+          icon: "fal fa-car-side",
+        },
+
+        {
+          name: "Documents",
+          displayName: "Documents",
+          targetPage: "/documents",
+          icon: "fal fa-folders",
+        },
       ],
       filteredLinks: [],
       userRole: null,
@@ -275,7 +288,7 @@ i {
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  
+
   border-bottom: 1px solid #9a9a9a;
   margin: 10px;
   margin-bottom: 30px;

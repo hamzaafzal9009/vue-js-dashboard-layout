@@ -9,19 +9,18 @@
           trigger="click"
         >
           <div slot="reference" class="navbar-profile-wrapper">
-            <div
-              class="profile-image"
-              :style="{ background: generateColor() }"
-              v-if="!currentUser.userImage"
-            >
-              <span class="initials">A</span>
+            <div class="profile-image" :style="{ background: generateColor() }">
+              <span class="initials">D</span>
             </div>
             <span class="profile-caret"
               ><i class="profile-caret fas fa-caret-down"></i
             ></span>
           </div>
           <div class="profile-popover-content">
-            <div class="profile-popover-item" @click="logout">
+            <div class="profile-popover-item" @click="$router.push('/profile')">
+              <i class="item-icon fas fa-file-user"></i>Profile
+            </div>
+            <div class="profile-popover-item" @click="logoutUser">
               <i class="item-icon fas fa-sign-out-alt"></i>Logout
             </div>
           </div>
@@ -33,7 +32,8 @@
 
 <script>
 import { EventService } from "../../main";
-
+import firebase from "../../plugins/firebase";
+import "firebase/auth";
 export default {
   name: "navbar",
   props: ["pageTitle"],
@@ -44,11 +44,26 @@ export default {
       currentUser: {
         userImage: "",
       },
+      loggedInUser: {},
+      setAuthUser: {},
       isDisplayed: false,
     };
   },
   computed: {},
 
+  created() {
+    this.loggedInUser = JSON.parse(localStorage.getItem("authUser"));
+  },
+  beforeCreate() {
+    const user = localStorage.getItem("authUser")
+      ? JSON.parse(localStorage.getItem("authUser"))
+      : null;
+    if (!user) {
+      this.$router.push("/login");
+    } else if (user.driverStatus === "pending") {
+      // this.$router.push('/registration/additional-details')
+    }
+  },
   methods: {
     toggleMenu() {
       this.isDisplayed = false;
@@ -70,10 +85,18 @@ export default {
         this.logout();
       }
     },
-    logout() {
-      EventService.$emit("successMessage", "Logged Out");
-      localStorage.removeItem("authUser");
-      this.$router.push("/login");
+    logoutUser() {
+      EventService.$emit("loading", "show");
+      firebase
+        .auth()
+        .signOut()
+        .then(() => {
+          localStorage.setItem("authUser", "");
+          this.$router.push("/login");
+          EventService.$emit("successMessage", "Logged Out");
+          EventService.$emit("loading", "hide");
+        })
+        .catch((error) => EventService.$emit("loading", "hide"));
     },
     generateColor() {
       return "#65615B";

@@ -61,24 +61,38 @@
       />
       <router-view class="main-content-view" />
     </div>
+    <el-dialog
+      title="Additional Details"
+      :visible.sync="dialogVisible"
+      width="70%"
+      :before-close="handleClose"
+      v-if="$route.name != 'Login'"
+    >
+      <AdditionDetails></AdditionDetails>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import navbar from "./components/layout/Navbar";
+import AdditionDetails from "./components/AdditionalDetails";
 import sidebar from "./components/layout/Sidebar";
 import appFooter from "./components/layout/Footer";
 import { EventService } from "./main";
+import firebase from "./plugins/firebase";
+const db = firebase.firestore();
 
 export default {
   name: "index",
   components: {
     navbar,
     sidebar,
+    AdditionDetails,
     appFooter,
   },
   data: function() {
     return {
+      dialogVisible: false,
       sidebarMinimized: false,
       currentPageTitle: "Login",
       successTitle: "Success",
@@ -98,6 +112,7 @@ export default {
       hideSidebarPages: ["Login"],
       hideNavbarPages: ["Login"],
       hideFooterPages: ["Login"],
+      authUser: [],
     };
   },
   computed: {
@@ -126,6 +141,7 @@ export default {
     EventService.$on("warningMessage", this.displayWarningMessage);
     EventService.$on("loading", this.displayLoading);
     EventService.$on("sidebarChange", this.toggleSidebar);
+    EventService.$on("checkUserStatus", this.checkUserStatus);
   },
   methods: {
     toggleSidebar() {
@@ -139,10 +155,43 @@ export default {
     },
 
     getUser() {
-      let user = JSON.parse(localStorage.getItem("authAdmin"));
-      if (user == null) {
+      const user = localStorage.getItem("authUser")
+        ? JSON.parse(localStorage.getItem("authUser"))
+        : null;
+      if (!user) {
         this.$router.push("/login");
+      } else if (
+        user.driverStatus === "pending" ||
+        user.driverStatus === "incomplete"
+      ) {
+        firebase
+          .firestore()
+          .collection("drivers")
+          .doc(user.driverId)
+          .get()
+          .then((snapshot) => {
+            const data = snapshot.data();
+            if (
+              data.driverStatus == "incomplete" ||
+              data.driverStatus == "pending"
+            ) {
+              this.dialogVisible = true;
+            }
+          })
+          .catch((error) => {
+            EventService.$emit("loading", "hide");
+            EventService.$emit("errorMessage", "Driver Deleted Successful.");
+          });
+        // this.dialogVisible = true;
+        // this.$router.push('/registration/additional-details')
       }
+    },
+    handleClose(done) {
+      this.$confirm("Are you sure to you want to close?")
+        .then((_) => {
+          done();
+        })
+        .catch((_) => {});
     },
     displaySuccessMessage(successMessage, successTitle) {
       this.successMessage = successMessage;
@@ -176,6 +225,9 @@ export default {
         this.warningMessage = "";
         this.warningTitle = "Warning";
       }, 3000);
+    },
+    checkUserStatus() {
+      this.getUser();
     },
     displayLoading(command) {
       let counter = 0;

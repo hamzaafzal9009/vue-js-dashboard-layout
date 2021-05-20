@@ -27,6 +27,7 @@
           prefix-icon="fal fa-mobile"
           placeholder="Phone Number (+2301111111111)"
           @keyup.enter.native="doLogin()"
+          required
         ></el-input>
         <el-input
           v-model="formValues.password"
@@ -36,6 +37,7 @@
           type="password"
           @keyup.enter.native="doLogin()"
           show-password
+          required
         ></el-input>
         <div class="error-message" v-if="loginError">{{ loginError }}</div>
         <div class="remember-container flex-space-between">
@@ -101,26 +103,30 @@ export default {
     };
   },
   created() {
-    const user = localStorage.getItem("authUser")
-      ? JSON.parse(localStorage.getItem("authUser"))
-      : null;
-    if (user) {
-      if (["incomplete", "pending"].includes(user.driverStatus)) {
-        // this.$router.push('/registration/additional-details')
-        this.$router.push("/dashboard");
-      } else {
-        this.$router.push("/dashboard");
-      }
-    }
+    // const user = localStorage.getItem("authUser")
+    //   ? JSON.parse(localStorage.getItem("authUser"))
+    //   : null;
+    // if (user) {
+    //   if (["incomplete", "pending"].includes(user.driverStatus)) {
+    //     // this.$router.push('/registration/additional-details')
+    //     localStorage.setItem("profileStatus", "incomplete");
+    //   }
+    //   this.$router.push("/dashboard");
+    // }
+    localStorage.removeItem("authUser");
   },
   methods: {
     doLogin() {
       var vm = this;
+      if (vm.formValues.phone_number == "" || vm.formValues.password == "") {
+        vm.loginError = "Phone Number &amp; Password is Required";
+        return;
+      }
       EventService.$emit("loading", "show");
       vm.loginError = null;
       const credential = {
-        phone_number: this.formValues.phone_number,
-        password: this.formValues.password,
+        phone_number: vm.formValues.phone_number,
+        password: vm.formValues.password,
       };
       ref
         .doc(credential.phone_number)
@@ -142,14 +148,14 @@ export default {
                 if (
                   ["incomplete", "pending"].includes(responseData.driverStatus)
                 ) {
-                  window.open("/registration/additional-details", "_self");
-                } else {
-                  this.$router.push("/dashboard");
+                  localStorage.setItem("profileStatus", "incomplete");
                 }
+                this.$router.push("/dashboard");
               })
               .catch((error) => {
                 console.error("Error", error);
-                EventService.$emit("errorMessage", "Something Went Wrong");
+                vm.loginError = "Phone Number or Password is wrong";
+                // EventService.$emit("errorMessage", "Something Went Wrong");
                 EventService.$emit("loading", "hide");
               });
           } else {
